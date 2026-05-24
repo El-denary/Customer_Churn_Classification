@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bank Churn Classification — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface2: #f1efe8;
+    --border: rgba(0,0,0,0.10);
+    --text: #1a1a18;
+    --text2: #5f5e5a;
+    --text3: #888780;
+    --accent: #185fa5;
+    --accent-light: #e6f1fb;
+    --green: #3b6d11;
+    --green-light: #eaf3de;
+    --amber: #854f0b;
+    --amber-light: #faeeda;
+    --coral: #993c1d;
+    --coral-light: #faece7;
+    --purple: #534ab7;
+    --purple-light: #eeedfe;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --surface: #252522;
+      --surface2: #2c2c2a;
+      --border: rgba(255,255,255,0.10);
+      --text: #f0ede6;
+      --text2: #b4b2a9;
+      --text3: #888780;
+      --accent: #85b7eb;
+      --accent-light: #042c53;
+      --green: #c0dd97;
+      --green-light: #173404;
+      --amber: #fac775;
+      --amber-light: #412402;
+      --coral: #f0997b;
+      --coral-light: #4a1b0c;
+      --purple: #afa9ec;
+      --purple-light: #26215c;
+    }
+  }
+
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  .page-header {
+    max-width: 1100px;
+    margin: 0 auto 2.5rem;
+    border-bottom: 0.5px solid var(--border);
+    padding-bottom: 1.5rem;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 99px;
+    background: var(--accent-light);
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  h1 { font-size: 26px; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+  .subtitle { font-size: 14px; color: var(--text2); }
+
+  .container { max-width: 1100px; margin: 0 auto; }
+
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+  }
+
+  .metric-label {
+    font-size: 12px;
+    color: var(--text3);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.4rem;
+  }
+
+  .metric-value {
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+  }
+
+  .metric-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  .metric-accent { color: var(--accent); }
+  .metric-green { color: var(--green); }
+  .metric-amber { color: var(--amber); }
+  .metric-coral { color: var(--coral); }
+  .metric-purple { color: var(--purple); }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin-bottom: 1rem;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 16px;
+    margin-bottom: 2rem;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .chart-desc {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 1rem;
+  }
+
+  .chart-wrap { position: relative; width: 100%; }
+
+  .model-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .model-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text3);
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .model-table td {
+    padding: 10px 12px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+  }
+
+  .model-table tr:last-child td { border-bottom: none; }
+
+  .model-table tr.best-row td { color: var(--text); }
+  .model-table tr.best-row td:first-child { font-weight: 600; }
+
+  .bar-inline {
+    display: inline-block;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    vertical-align: middle;
+    margin-left: 8px;
+    overflow: hidden;
+    width: 80px;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  .best-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 99px;
+    background: var(--green-light);
+    color: var(--green);
+    margin-left: 6px;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 640px) {
+    .two-col { grid-template-columns: 1fr; }
+    h1 { font-size: 20px; }
+  }
+
+  .findings-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .finding-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.55;
+  }
+
+  .finding-item:last-child { border-bottom: none; }
+
+  .finding-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .pipeline-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0.5rem;
+  }
+
+  .step-pill {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 99px;
+    border: 0.5px solid var(--border);
+    color: var(--text2);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .step-pill .arrow {
+    color: var(--text3);
+    font-size: 10px;
+  }
+
+  .legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .full-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .xgb-highlight {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 1rem 0 0;
+  }
+
+  @media (max-width: 640px) {
+    .xgb-highlight { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .xgb-stat {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 0.8rem 1rem;
+    text-align: center;
+  }
+
+  .xgb-stat-value { font-size: 20px; font-weight: 600; color: var(--text); }
+  .xgb-stat-label { font-size: 11px; color: var(--text3); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="badge">Machine Learning · Classification</div>
+  <h1>Bank Customer Churn</h1>
+  <p class="subtitle">10,000 customer records · France, Germany, Spain · XGBoost best model (85.13% accuracy)</p>
+</div>
+
+<div class="container">
+
+  <!-- Metrics Row -->
+  <div class="section-label">Dataset overview</div>
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total customers</div>
+      <div class="metric-value metric-accent">10,000</div>
+      <div class="metric-sub">Training + validation + test</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Churn rate</div>
+      <div class="metric-value metric-coral">20.4%</div>
+      <div class="metric-sub">2,037 churned customers</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Features used</div>
+      <div class="metric-value metric-purple">11</div>
+      <div class="metric-sub">After dropping identifiers</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Best accuracy</div>
+      <div class="metric-value metric-green">85.1%</div>
+      <div class="metric-sub">XGBoost on test set</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">ROC-AUC</div>
+      <div class="metric-value metric-amber">0.847</div>
+      <div class="metric-sub">XGBoost discriminative power</div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="section-label">Distribution analysis</div>
+  <div class="charts-grid">
+
+    <div class="chart-card">
+      <div class="chart-title">Churn distribution</div>
+      <div class="chart-desc">Target class balance (before SMOTE)</div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-dot" style="background:#378add"></span>Stayed (79.6%)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#d85a30"></span>Churned (20.4%)</div>
+      </div>
+      <div class="chart-wrap" style="height: 220px;">
+        <canvas id="churnDonut" role="img" aria-label="Donut chart showing 79.6% of customers stayed and 20.4% churned">79.6% stayed, 20.4% churned.</canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Churn by geography</div>
+      <div class="chart-desc">Germany has notably higher churn rate</div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-dot" style="background:#378add"></span>Stayed</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#d85a30"></span>Churned</div>
+      </div>
+      <div class="chart-wrap" style="height: 220px;">
+        <canvas id="geoChart" role="img" aria-label="Grouped bar chart of churn by country. Germany has the highest churn.">Germany has higher churn rate than France and Spain.</canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Churn by number of products</div>
+      <div class="chart-desc">Customers with 3–4 products almost always churn</div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-dot" style="background:#378add"></span>Stayed</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#d85a30"></span>Churned</div>
+      </div>
+      <div class="chart-wrap" style="height: 220px;">
+        <canvas id="productsChart" role="img" aria-label="Bar chart showing churn rate by number of products held. Products 3 and 4 show near-100% churn.">Customers with 3 or 4 products churn almost universally.</canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">Churn by active membership</div>
+      <div class="chart-desc">Inactive members churn at higher rates</div>
+      <div class="legend-row">
+        <div class="legend-item"><span class="legend-dot" style="background:#378add"></span>Stayed</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#d85a30"></span>Churned</div>
+      </div>
+      <div class="chart-wrap" style="height: 220px;">
+        <canvas id="activeChart" role="img" aria-label="Grouped bar chart comparing churn for active vs inactive members. Inactive members churn more.">Inactive members churn significantly more than active members.</canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Model comparison -->
+  <div class="section-label">Model comparison</div>
+  <div class="two-col">
+
+    <div class="chart-card">
+      <div class="chart-title">Validation accuracy by model</div>
+      <div class="chart-desc">All models trained with sklearn Pipeline</div>
+      <div class="chart-wrap" style="height: 260px; margin-top: 0.5rem;">
+        <canvas id="modelChart" role="img" aria-label="Horizontal bar chart comparing accuracy of 6 models. Random Forest and XGBoost lead.">XGBoost and Random Forest achieve the highest accuracy.</canvas>
+      </div>
+    </div>
+
+    <div class="full-card" style="margin-bottom: 0;">
+      <div class="chart-title" style="margin-bottom: 1rem;">Detailed model scores</div>
+      <table class="model-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Val accuracy</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Logistic Regression</td>
+            <td>81.1%</td>
+            <td><span class="bar-inline"><span class="bar-fill" style="width:81.1%;background:#b5d4f4"></span></span></td>
+          </tr>
+          <tr>
+            <td>Logistic Reg (balanced)</td>
+            <td>76.3%</td>
+            <td><span class="bar-inline"><span class="bar-fill" style="width:76.3%;background:#b5d4f4"></span></span></td>
+          </tr>
+          <tr>
+            <td>KNN</td>
+            <td>83.2%</td>
+            <td><span class="bar-inline"><span class="bar-fill" style="width:83.2%;background:#b5d4f4"></span></span></td>
+          </tr>
+          <tr>
+            <td>SVM</td>
+            <td>85.4%</td>
+            <td><span class="bar-inline"><span class="bar-fill" style="width:85.4%;background:#85b7eb"></span></span></td>
+          </tr>
+          <tr>
+            <td>Random Forest</td>
+            <td>86.1%</td>
+            <td><span class="bar-inline"><span class="bar-fill" style="width:86.1%;background:#85b7eb"></span></span></td>
+          </tr>
+          <tr class="best-row">
+            <td>XGBoost <span class="best-badge">best</span></td>
+            <td>85.1%</td>
+            <td><span class="bar-inline"><span class="bar-fill" style="width:85.1%;background:#3b6d11"></span></span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- XGBoost metrics -->
+  <div class="full-card">
+    <div class="chart-title">XGBoost — final test set performance</div>
+    <p style="font-size:12px;color:var(--text3);margin: 4px 0 0;">Evaluated on 1,500 held-out samples not seen during training</p>
+    <div class="xgb-highlight">
+      <div class="xgb-stat">
+        <div class="xgb-stat-value" style="color:var(--green)">85.1%</div>
+        <div class="xgb-stat-label">accuracy</div>
+      </div>
+      <div class="xgb-stat">
+        <div class="xgb-stat-value" style="color:var(--accent)">0.847</div>
+        <div class="xgb-stat-label">ROC-AUC</div>
+      </div>
+      <div class="xgb-stat">
+        <div class="xgb-stat-value" style="color:var(--purple)">0.72</div>
+        <div class="xgb-stat-label">Churn precision</div>
+      </div>
+      <div class="xgb-stat">
+        <div class="xgb-stat-value" style="color:var(--amber)">0.44</div>
+        <div class="xgb-stat-label">Churn recall</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key findings + pipeline -->
+  <div class="two-col">
+
+    <div class="full-card" style="margin-bottom: 0;">
+      <div class="chart-title" style="margin-bottom: 0.75rem;">Key findings from EDA</div>
+      <ul class="findings-list">
+        <li class="finding-item">
+          <span class="finding-dot" style="background:var(--coral)"></span>
+          Age is the strongest churn predictor — older customers exit at much higher rates.
+        </li>
+        <li class="finding-item">
+          <span class="finding-dot" style="background:var(--coral)"></span>
+          German customers churn disproportionately compared to France and Spain.
+        </li>
+        <li class="finding-item">
+          <span class="finding-dot" style="background:var(--amber)"></span>
+          Inactive members (IsActiveMember = 0) have significantly higher churn.
+        </li>
+        <li class="finding-item">
+          <span class="finding-dot" style="background:var(--amber)"></span>
+          Customers with 3–4 products show near 100% churn — a critical risk signal.
+        </li>
+        <li class="finding-item">
+          <span class="finding-dot" style="background:var(--accent)"></span>
+          Customers with zero balance rarely churn — balance has a bimodal distribution.
+        </li>
+        <li class="finding-item">
+          <span class="finding-dot" style="background:var(--text3)"></span>
+          Female customers churn slightly more, but gender is a weaker predictor overall.
+        </li>
+      </ul>
+    </div>
+
+    <div class="full-card" style="margin-bottom: 0;">
+      <div class="chart-title" style="margin-bottom: 0.75rem;">ML pipeline</div>
+      <div style="font-size: 12px; color: var(--text3); margin-bottom: 0.75rem;">End-to-end processing steps</div>
+      <div class="pipeline-steps">
+        <div class="step-pill">Raw data</div>
+        <div class="step-pill"><span class="arrow">→</span> Drop identifiers</div>
+        <div class="step-pill"><span class="arrow">→</span> EDA & outlier removal</div>
+        <div class="step-pill"><span class="arrow">→</span> Train / val / test split (70/15/15)</div>
+        <div class="step-pill"><span class="arrow">→</span> StandardScaler</div>
+        <div class="step-pill"><span class="arrow">→</span> OneHotEncoder</div>
+        <div class="step-pill"><span class="arrow">→</span> SMOTE (train only)</div>
+        <div class="step-pill"><span class="arrow">→</span> Model comparison</div>
+        <div class="step-pill"><span class="arrow">→</span> XGBoost (best)</div>
+        <div class="step-pill"><span class="arrow">→</span> Neural network (TF/Keras)</div>
+        <div class="step-pill"><span class="arrow">→</span> Final evaluation</div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const textColor = isDark ? '#b4b2a9' : '#5f5e5a';
+const gridColor = isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)';
+
+new Chart(document.getElementById('churnDonut'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Stayed', 'Churned'],
+    datasets: [{
+      data: [7963, 2037],
+      backgroundColor: ['#378add', '#d85a30'],
+      borderWidth: 0,
+      hoverOffset: 4
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw.toLocaleString()} (${((ctx.raw/10000)*100).toFixed(1)}%)` } }
+    }
+  }
+});
+
+new Chart(document.getElementById('geoChart'), {
+  type: 'bar',
+  data: {
+    labels: ['France', 'Germany', 'Spain'],
+    datasets: [
+      { label: 'Stayed', data: [4143, 1695, 2125], backgroundColor: '#378add' },
+      { label: 'Churned', data: [871, 814, 352], backgroundColor: '#d85a30' }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: textColor } },
+      y: { grid: { color: gridColor }, ticks: { color: textColor } }
+    }
+  }
+});
+
+new Chart(document.getElementById('productsChart'), {
+  type: 'bar',
+  data: {
+    labels: ['1 product', '2 products', '3 products', '4 products'],
+    datasets: [
+      { label: 'Stayed', data: [3520, 4238, 22, 27], backgroundColor: '#378add' },
+      { label: 'Churned', data: [1198, 619, 1192, 28], backgroundColor: '#d85a30' }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: textColor } },
+      y: { grid: { color: gridColor }, ticks: { color: textColor } }
+    }
+  }
+});
+
+new Chart(document.getElementById('activeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Inactive', 'Active'],
+    datasets: [
+      { label: 'Stayed', data: [3546, 4417], backgroundColor: '#378add' },
+      { label: 'Churned', data: [1302, 735], backgroundColor: '#d85a30' }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { color: textColor } },
+      y: { grid: { color: gridColor }, ticks: { color: textColor } }
+    }
+  }
+});
+
+new Chart(document.getElementById('modelChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Log. Reg', 'Log. Reg (bal.)', 'KNN', 'SVM', 'Random Forest', 'XGBoost'],
+    datasets: [{
+      data: [81.1, 76.3, 83.2, 85.4, 86.1, 85.1],
+      backgroundColor: ['#b5d4f4','#b5d4f4','#b5d4f4','#85b7eb','#85b7eb','#3b6d11'],
+      borderWidth: 0,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.raw.toFixed(1)}%` } } },
+    scales: {
+      x: {
+        min: 70, max: 90,
+        grid: { color: gridColor },
+        ticks: { color: textColor, callback: v => v + '%' }
+      },
+      y: { grid: { color: 'transparent' }, ticks: { color: textColor } }
+    }
+  }
+});
+</script>
+
+</body>
+</html>
