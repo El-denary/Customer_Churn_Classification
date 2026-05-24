@@ -8,6 +8,9 @@
 
 > Predicting which bank customers are likely to churn using classical ML models and a deep neural network — with full EDA, preprocessing, SMOTE resampling, and model comparison.
 
+> ## 📊 Live Dashboard
+👉 [View Interactive Dashboard](https://el-denary.github.io/Customer_Churn_Classification/dashboard.html)
+
 ---
 
 ## 📋 Table of Contents
